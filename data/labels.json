@@ -1,0 +1,138 @@
+[
+ {
+  "t": "Upper Cobb",
+  "x": 1022,
+  "y": 478
+ },
+ {
+  "t": "Center Cobb",
+  "x": 1142,
+  "y": 478
+ },
+ {
+  "t": "Dewey Court",
+  "x": 1252,
+  "y": 490
+ },
+ {
+  "t": "Emerson",
+  "x": 1404,
+  "y": 498
+ },
+ {
+  "t": "Keynole",
+  "x": 866,
+  "y": 578
+ },
+ {
+  "t": "Oak Street",
+  "x": 1012,
+  "y": 616
+ },
+ {
+  "t": "Cobb Square",
+  "x": 1114,
+  "y": 686
+ },
+ {
+  "t": "Oyster Cove",
+  "x": 700,
+  "y": 700
+ },
+ {
+  "t": "Crow Lane",
+  "x": 1414,
+  "y": 648
+ },
+ {
+  "t": "Gamble Hill",
+  "x": 1710,
+  "y": 716
+ },
+ {
+  "t": "Park Avenue",
+  "x": 1804,
+  "y": 586
+ },
+ {
+  "t": "Old Furnace",
+  "x": 1438,
+  "y": 816
+ },
+ {
+  "t": "Marsh Station",
+  "x": 1678,
+  "y": 954
+ },
+ {
+  "t": "Upper Market St.",
+  "x": 1078,
+  "y": 874
+ },
+ {
+  "t": "Lower Market St.",
+  "x": 1110,
+  "y": 994
+ },
+ {
+  "t": "Slaughterhouse Point",
+  "x": 814,
+  "y": 958
+ },
+ {
+  "t": "Witch Landing",
+  "x": 1038,
+  "y": 1164
+ },
+ {
+  "t": "Smith's Bottom",
+  "x": 1334,
+  "y": 1058
+ },
+ {
+  "t": "Lower Bend",
+  "x": 1708,
+  "y": 1170
+ },
+ {
+  "t": "Upper Bend",
+  "x": 1878,
+  "y": 964
+ },
+ {
+  "t": "Fish Head Flat",
+  "x": 1376,
+  "y": 1266
+ },
+ {
+  "t": "Port Wilson",
+  "x": 882,
+  "y": 1698
+ },
+ {
+  "t": "Vandemeer Fens",
+  "x": 2132,
+  "y": 1434
+ },
+ {
+  "t": "Roundhead Square",
+  "x": 1638,
+  "y": 1834
+ },
+ {
+  "t": "Coffee Street",
+  "x": 968,
+  "y": 804
+ },
+ {
+  "t": "Church Street",
+  "x": 1566,
+  "y": 524
+ },
+ {
+  "t": "SOUTH END",
+  "x": 1328,
+  "y": 774,
+  "big": true
+ }
+]

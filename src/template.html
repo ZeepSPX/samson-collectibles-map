@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Samson — карта колекцій</title>
+<meta name="description" content="Інтерактивна офлайн-карта колекційних предметів гри Samson: сендвіч-борди та журнали. Позначайте зібране, прогрес зберігається у браузері.">
+<meta property="og:title" content="Samson — карта колекцій">
+<meta property="og:description" content="Сендвіч-борди, автомобільні журнали та журнали з бойових мистецтв на інтерактивній карті.">
+<meta name="theme-color" content="#1e262d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231e262d'/%3E%3Cpath d='M16 6 26 24H6z' fill='%23f08a00'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ink:#1e262d; --ink2:#2a343c; --line:#3a4651; --text:#e6ebee; --mute:#9aa7b1;
+  --board:#f08a00; --car:#2a62ff; --combat:#e0301e; --done:#2f9e8f;
+  --sea:#cddde1;
+  --inv:1;
+  font-family:"Bahnschrift","Segoe UI Variable","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#2a343c;color:var(--text);overflow:hidden;overscroll-behavior:none}
+#view{position:fixed;inset:0;touch-action:none;cursor:grab;background:#2a343c}
+#view.drag{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#world img{display:block;box-shadow:0 0 0 2px #4a5762;user-select:none;-webkit-user-drag:none;image-rendering:auto}
+.lbl{position:absolute;transform:translate(-50%,-50%) scale(var(--inv));white-space:nowrap;font-weight:700;font-size:13px;letter-spacing:.02em;
+  color:#5d6a60;text-shadow:0 0 3px #e9e5da,0 0 3px #e9e5da,0 0 5px #e9e5da;pointer-events:none}
+.lbl.big{font-size:20px;color:#7b8780}
+body.nolabels .lbl{display:none}
+.mk{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;transform:scale(var(--inv));cursor:pointer;display:grid;place-items:center;
+  font-size:11px;font-weight:800;color:#fff;-webkit-tap-highlight-color:transparent}
+.mk::before{content:"";position:absolute;inset:0;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.55)}
+.mk span{position:relative;line-height:1;pointer-events:none}
+.mk.car::before{background:var(--car);border-radius:50%}
+.mk.combat::before{background:var(--combat);border-radius:50%}
+.mk.board{width:22px;height:20px;margin:-12px 0 0 -11px}
+.mk.board::before{background:var(--board);border:0;border-radius:0;clip-path:polygon(50% 0,100% 100%,0 100%);box-shadow:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}
+.mk.board span{top:4px;font-size:9px;color:#2a1700;display:none}
+body.nums .mk.board span{display:block}
+.mk.done::before{background:var(--done);opacity:.9}
+.mk.done.board::before{background:var(--done)}
+.mk.done span{color:#fff}
+.mk.done::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;font-size:14px;font-weight:900;color:#fff}
+.mk.board.done::after{top:3px;font-size:11px}
+.mk.done span{display:none!important}
+body.hidedone .mk.done{display:none}
+.mk.hidden{display:none}
+.mk.grp{display:none}
+.cl{position:absolute;width:36px;height:36px;margin:-18px 0 0 -18px;transform:scale(var(--inv));border-radius:50%;cursor:pointer;display:grid;place-items:center;
+  font-size:13px;font-weight:800;color:#fff;background:conic-gradient(var(--done) var(--p,0%),#fff 0);box-shadow:0 1px 4px rgba(0,0,0,.55);z-index:3;-webkit-tap-highlight-color:transparent}
+.cl::before{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--bg,#1e262d)}
+.cl span{position:relative;line-height:1;pointer-events:none}
+.cl.hid{display:none}
+.cl:focus-visible{outline:3px solid #111;outline-offset:2px}
+.mk.sel{z-index:5}
+.mk.sel::before{outline:3px solid #111;outline-offset:2px}
+.mk.board.sel::before{outline:0;filter:drop-shadow(0 0 0 #000) drop-shadow(0 0 3px #000) drop-shadow(0 0 3px #000)}
+.mk:focus-visible::before{outline:3px solid #111;outline-offset:2px}
+/* panel */
+#panel{position:fixed;left:12px;top:12px;width:300px;max-width:calc(100vw - 24px);background:var(--ink);border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 8px 28px rgba(0,0,0,.35);padding:12px 12px 10px;z-index:10;max-height:calc(100vh - 24px);overflow:auto}
+#panel h1{font-size:16px;margin:0 0 2px;font-weight:700}
+#panel .sub{margin:0 0 10px;font-size:12.5px;color:var(--mute)}
+#head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#fold{background:none;border:1px solid var(--line);color:var(--text);border-radius:6px;width:30px;height:30px;font-size:16px;cursor:pointer}
+body.folded #panelbody{display:none}
+.cat{display:grid;grid-template-columns:26px 1fr auto;gap:2px 10px;align-items:center;padding:8px 6px;border-top:1px solid var(--line)}
+.cat .ic{width:22px;height:22px;display:block}
+.ic.c{border-radius:50%;border:2px solid #fff}
+.ic.car{background:var(--car)} .ic.combat{background:var(--combat)}
+.ic.board{background:var(--board);clip-path:polygon(50% 0,100% 100%,0 100%);height:20px}
+.cat .nm{font-size:14px;font-weight:600}
+.cat .cnt{font-size:14px;font-variant-numeric:tabular-nums;font-weight:700}
+.bar{grid-column:2 / 4;height:6px;background:var(--ink2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--done);width:0;transition:width .25s}
+.cat label{grid-column:1 / 4;display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--mute);cursor:pointer;margin-top:2px}
+.opts{border-top:1px solid var(--line);padding:8px 6px 4px;display:grid;gap:6px}
+.opts label{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
+input[type=checkbox]{accent-color:var(--done);width:16px;height:16px;margin:0}
+.btns{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 2px;border-top:1px solid var(--line);margin-top:6px}
+button.b{background:var(--ink2);border:1px solid var(--line);color:var(--text);padding:7px 10px;border-radius:7px;font:inherit;font-size:13px;cursor:pointer}
+button.b:hover{background:#34414b}
+button.b.warn{color:#ffb4a8}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #8fd3ff;outline-offset:2px}
+#jump{display:flex;gap:6px;padding:8px 6px 0;border-top:1px solid var(--line);margin-top:6px}
+#jump select,#jump input{background:var(--ink2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:6px 8px;font:inherit;font-size:13px;min-width:0}
+#jump input{width:70px}
+#jump button{flex:none}
+/* group list */
+#grp{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:350px;max-width:calc(100vw - 24px);max-height:46vh;overflow:auto;
+  background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;z-index:12;display:none;box-shadow:0 8px 28px rgba(0,0,0,.4)}
+#grp.on{display:block}
+#grp .gh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:14px;margin-bottom:6px}
+#grp .gh button.b{padding:4px 9px}
+#grp .row{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+#grp .row .n{font-size:13.5px;font-weight:600}
+#grp .row .c{font-size:11.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+#grp .row.d .n{color:#7fd4c8}
+#grp .all{margin-top:6px;width:100%}
+/* zoom */
+#zoom{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:grid;gap:6px;z-index:10}
+#zoom button{width:42px;height:42px;font-size:20px;background:var(--ink);color:var(--text);border:1px solid var(--line);border-radius:9px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+/* info bar */
+#info{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;gap:12px;align-items:center;z-index:11;
+  box-shadow:0 8px 28px rgba(0,0,0,.4);max-width:calc(100vw - 80px);transition:opacity .15s,transform .15s}
+#info.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#info .t{font-size:14px;font-weight:700}
+#info .c{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums;margin-top:2px}
+#info button{white-space:nowrap}
+#toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:var(--ink);border:1px solid var(--line);padding:8px 12px;border-radius:8px;font-size:13px;z-index:20;display:none}
+#help{position:fixed;right:12px;top:12px;z-index:9;max-width:260px;font-size:12px;color:#33414a;background:rgba(244,247,248,.88);border-radius:8px;padding:8px 10px;line-height:1.4}
+#help b{font-weight:700}
+@media (max-width:640px){
+  #panel{width:calc(100vw - 24px)}
+  body:not(.folded) #help{display:none}
+  #help{top:auto;bottom:calc(66px + env(safe-area-inset-bottom,0px));right:auto;left:12px;max-width:calc(100vw - 80px)}
+  #info{max-width:calc(100vw - 72px);left:12px;transform:translate(0,20px)}
+  #info.on{transform:translate(0,0)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body class="nums">
+<noscript><p style="position:fixed;inset:0;display:grid;place-items:center;margin:0;padding:24px;text-align:center;background:#1e262d;color:#e6ebee;z-index:99">Для роботи карти потрібен JavaScript.</p></noscript>
+<div id="view" tabindex="0" aria-label="Карта колекційних предметів">
+  <div id="world"></div>
+</div>
+
+<div id="panel">
+  <div id="head">
+    <div><h1>Samson · колекції</h1></div>
+    <button id="fold" title="Згорнути панель" aria-label="Згорнути або розгорнути панель">–</button>
+  </div>
+  <div id="panelbody">
+    <p class="sub">Клікніть на маркер, щоб позначити предмет зібраним.</p>
+    <div id="cats"></div>
+    <div id="jump">
+      <select id="jcat" aria-label="Тип предмета"></select>
+      <input id="jnum" type="number" min="1" placeholder="№" aria-label="Номер предмета">
+      <button class="b" id="jgo">Знайти</button>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="optGroup" checked> Групувати близькі предмети</label>
+      <label><input type="checkbox" id="optHide"> Сховати зібране</label>
+      <label><input type="checkbox" id="optNums" checked> Номери на маркерах</label>
+      <label><input type="checkbox" id="optLabels" checked> Назви районів</label>
+    </div>
+    <div class="btns">
+      <button class="b" id="undo">Скасувати</button>
+      <button class="b" id="exp">Зберегти у файл</button>
+      <button class="b" id="imp">Завантажити з файлу</button>
+      <button class="b warn" id="reset">Скинути все</button>
+      <input type="file" id="file" accept="application/json,.json" hidden>
+    </div>
+  </div>
+</div>
+
+<div id="help"><b>Керування:</b> перетягуйте карту, колесо миші або щипок — масштаб. Для точного місця наближайте карту.</div>
+
+<div id="zoom">
+  <button id="zin" aria-label="Збільшити">+</button>
+  <button id="zout" aria-label="Зменшити">−</button>
+  <button id="zfit" aria-label="Показати всю карту" style="font-size:15px">⤢</button>
+</div>
+
+<div id="info" role="status"><div><div class="t" id="it"></div><div class="c" id="ic"></div></div><button class="b" id="itoggle"></button></div>
+<div id="grp" role="dialog" aria-label="Предмети поруч"></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+var IMG_W=__W__, IMG_H=__H__;
+var MARKERS=__MARKERS__;
+var LABELS=__LABELS__;
+var IMG_SRC="data:image/webp;base64,__IMG__";
+var CATS=[
+ {id:"board",name:"Сендвіч-борди",cls:"board"},
+ {id:"car",name:"Журнали: автомобільні",cls:"car"},
+ {id:"combat",name:"Журнали: бойові мистецтва",cls:"combat"}
+];
+var KEY="samson-collectibles-v1";
+var done={};            // key "cat:n" -> true
+var lastAction=null;
+var selKey=null;
+
+/* ---------- storage ---------- */
+function load(){
+  try{var s=localStorage.getItem(KEY); if(s){var o=JSON.parse(s); if(o&&o.done) done=o.done;}}catch(e){}
+}
+var saveWarned=false;
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify({v:1,done:done}));}
+  catch(e){ if(!saveWarned){saveWarned=true;toast("Браузер не дає зберігати дані тут. Користуйтеся кнопкою «Зберегти у файл».");} }
+}
+var prefs={};
+try{prefs=JSON.parse(localStorage.getItem(KEY+"-prefs")||"{}")||{};}catch(e){}
+function savePrefs(){try{localStorage.setItem(KEY+"-prefs",JSON.stringify(prefs));}catch(e){}}
+
+/* ---------- build world ---------- */
+var view=document.getElementById("view"), world=document.getElementById("world");
+var img=new Image(); img.width=IMG_W; img.height=IMG_H; img.alt=""; img.draggable=false; img.src=IMG_SRC;
+world.style.width=IMG_W+"px"; world.style.height=IMG_H+"px";
+world.appendChild(img);
+LABELS.forEach(function(l){
+  var d=document.createElement("div"); d.className="lbl"+(l.big?" big":""); d.textContent=l.t;
+  d.style.left=l.x+"px"; d.style.top=l.y+"px"; world.appendChild(d);
+});
+var els={};
+MARKERS.forEach(function(m){
+  var k=m.c+":"+m.n;
+  var e=document.createElement("div");
+  e.className="mk "+m.c; e.style.left=m.x+"px"; e.style.top=m.y+"px";
+  e.setAttribute("role","button"); e.tabIndex=0;
+  e.dataset.k=k;
+  e.innerHTML="<span>"+m.n+"</span>";
+  world.appendChild(e); els[k]=e; m.k=k;
+});
+var byKey={}; MARKERS.forEach(function(m){byKey[m.k]=m;});
+function catName(id){for(var i=0;i<CATS.length;i++)if(CATS[i].id===id)return CATS[i].name;return id;}
+function itemName(m){
+  return (m.c==="board"?"Сендвіч-борд":m.c==="car"?"Автомобільний журнал":"Журнал із бойових мистецтв")+" №"+m.n;
+}
+
+/* ---------- panel ---------- */
+var catsBox=document.getElementById("cats"), catUI={};
+CATS.forEach(function(c){
+  var d=document.createElement("div"); d.className="cat";
+  d.innerHTML='<span class="ic '+(c.cls==="board"?"board":"c "+c.cls)+'"></span><span class="nm">'+c.name+'</span><span class="cnt"></span>'+
+    '<div class="bar"><i></i></div><label><input type="checkbox" checked> Показувати на карті</label>';
+  catsBox.appendChild(d);
+  catUI[c.id]={cnt:d.querySelector(".cnt"),bar:d.querySelector(".bar i"),chk:d.querySelector("input")};
+  catUI[c.id].chk.addEventListener("change",function(){prefs["show_"+c.id]=this.checked;savePrefs();applyVisibility();});
+  if(prefs["show_"+c.id]===false) catUI[c.id].chk.checked=false;
+});
+var jcat=document.getElementById("jcat");
+CATS.forEach(function(c){var o=document.createElement("option");o.value=c.id;o.textContent=c.name;jcat.appendChild(o);});
+
+function counts(){
+  var tot={},dn={};
+  MARKERS.forEach(function(m){tot[m.c]=(tot[m.c]||0)+1; if(done[m.k])dn[m.c]=(dn[m.c]||0)+1;});
+  CATS.forEach(function(c){
+    var t=tot[c.id]||0,d=dn[c.id]||0;
+    catUI[c.id].cnt.textContent=d+" / "+t;
+    catUI[c.id].bar.style.width=(t?100*d/t:0)+"%";
+  });
+}
+function applyVisibility(){
+  MARKERS.forEach(function(m){els[m.k].classList.toggle("hidden",!catUI[m.c].chk.checked);});
+  schedule();
+}
+function refresh(k){
+  if(k){els[k].classList.toggle("done",!!done[k]);}
+  else MARKERS.forEach(function(m){els[m.k].classList.toggle("done",!!done[m.k]);});
+  counts();
+  if(selKey) updateInfo();
+  schedule(); refreshGrp();
+}
+
+/* ---------- actions ---------- */
+function toggle(k,silent){
+  var was=!!done[k];
+  if(was) delete done[k]; else done[k]=true;
+  lastAction={k:k,was:was};
+  save(); refresh(k);
+  select(k);
+}
+function select(k){
+  if(selKey&&els[selKey]) els[selKey].classList.remove("sel");
+  selKey=k; if(k){els[k].classList.add("sel"); updateInfo();} else document.getElementById("info").classList.remove("on");
+}
+function fmt(n){return Math.round(parseFloat(n)).toString().replace("-","−");}
+function updateInfo(){
+  var m=byKey[selKey]; if(!m) return;
+  document.getElementById("it").textContent=itemName(m)+(done[m.k]?" — зібрано":"");
+  document.getElementById("ic").textContent="X "+fmt(m.X)+"   Y "+fmt(m.Y)+"   Z "+fmt(m.Z);
+  document.getElementById("itoggle").textContent=done[m.k]?"Зняти позначку":"Позначити зібраним";
+  document.getElementById("info").classList.add("on");
+}
+document.getElementById("itoggle").addEventListener("click",function(){ if(selKey) toggle(selKey); });
+document.getElementById("undo").addEventListener("click",function(){
+  if(!lastAction){toast("Немає дії для скасування.");return;}
+  var a=lastAction; if(a.was) done[a.k]=true; else delete done[a.k];
+  lastAction=null; save(); refresh(a.k); select(a.k); toast("Дію скасовано.");
+});
+document.getElementById("reset").addEventListener("click",function(){
+  if(!Object.keys(done).length){toast("Зібраних предметів немає.");return;}
+  if(confirm("Зняти позначки з усіх предметів? Це не можна скасувати.")){done={};lastAction=null;save();refresh();toast("Усі позначки скинуто.");}
+});
+document.getElementById("exp").addEventListener("click",function(){
+  var data=JSON.stringify({game:"Samson",v:1,saved:new Date().toISOString(),done:done},null,1);
+  var a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));
+  a.download="samson-collectibles-progress.json"; document.body.appendChild(a); a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+  toast("Прогрес збережено у файл.");
+});
+var fileIn=document.getElementById("file");
+document.getElementById("imp").addEventListener("click",function(){fileIn.click();});
+fileIn.addEventListener("change",function(){
+  var f=fileIn.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var o=JSON.parse(r.result);
+      if(!o||typeof o.done!=="object") throw new Error("bad");
+      var n={},c=0; Object.keys(o.done).forEach(function(k){if(byKey[k]&&o.done[k]){n[k]=true;c++;}});
+      done=n; lastAction=null; save(); refresh(); toast("Завантажено позначок: "+c+".");
+    }catch(e){toast("Файл не схожий на збережений прогрес.");}
+    fileIn.value="";
+  };
+  r.readAsText(f);
+});
+(function(){
+  var h=document.getElementById("optHide"),n=document.getElementById("optNums"),l=document.getElementById("optLabels");
+  h.checked=!!prefs.hide; document.body.classList.toggle("hidedone",h.checked);
+  n.checked=prefs.nums!==false; document.body.classList.toggle("nums",n.checked);
+  l.checked=prefs.labels!==false; document.body.classList.toggle("nolabels",!l.checked);
+  h.addEventListener("change",function(){prefs.hide=h.checked;savePrefs();document.body.classList.toggle("hidedone",h.checked);schedule();});
+  n.addEventListener("change",function(){prefs.nums=n.checked;savePrefs();document.body.classList.toggle("nums",n.checked);});
+  l.addEventListener("change",function(){prefs.labels=l.checked;savePrefs();document.body.classList.toggle("nolabels",!l.checked);});
+})();
+document.getElementById("fold").addEventListener("click",function(){
+  document.body.classList.toggle("folded"); prefs.folded=document.body.classList.contains("folded"); savePrefs();
+});
+if(prefs.folded||(window.innerWidth<640&&prefs.folded!==false)) document.body.classList.add("folded");
+
+var toastT=null;
+function toast(msg){
+  var t=document.getElementById("toast"); t.textContent=msg; t.style.display="block";
+  clearTimeout(toastT); toastT=setTimeout(function(){t.style.display="none";},2600);
+}
+
+/* ---------- pan / zoom ---------- */
+var S=1,TX=0,TY=0,MIN=0.1,MAX=2.5;
+/* marker size: counter-scale so markers stay readable but shrink a bit when zoomed far out */
+function apply2(){
+  world.style.transform="translate("+TX+"px,"+TY+"px) scale("+S+")";
+  var eff=Math.min(Math.max(S,0.5),1.8);          // screen-size multiplier for markers
+  world.style.setProperty("--inv",(eff/S).toFixed(4));
+  if(S!==clLastS) schedule();
+}
+function clampPan(){
+  var vw=view.clientWidth,vh=view.clientHeight,w=IMG_W*S,h=IMG_H*S,m=80;
+  TX=w<=vw?(vw-w)/2:Math.min(m,Math.max(vw-w-m,TX));
+  TY=h<=vh?(vh-h)/2:Math.min(m,Math.max(vh-h-m,TY));
+}
+function setView(){clampPan();apply2();}
+function zoomAt(f,cx,cy){
+  var ns=Math.min(MAX,Math.max(MIN,S*f)); if(ns===S) return;
+  TX=cx-(cx-TX)*(ns/S); TY=cy-(cy-TY)*(ns/S); S=ns; setView();
+}
+function fit(){
+  var vw=view.clientWidth,vh=view.clientHeight;
+  var inset=(!document.body.classList.contains("folded")&&vw>900)?324:0;   // keep the panel off the map
+  var aw=vw-inset;
+  // fit the area that contains the markers (with margin), not the whole sheet
+  var b=bounds(), pad=140, w=b.x1-b.x0+pad*2, h=b.y1-b.y0+pad*2;
+  S=Math.min(aw/w,vh/h); MIN=Math.min(S,vw/IMG_W,vh/IMG_H)*0.9;
+  TX=inset+aw/2-(b.x0+b.x1)/2*S; TY=vh/2-(b.y0+b.y1)/2*S; setView();
+}
+function bounds(){
+  var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  MARKERS.forEach(function(m){x0=Math.min(x0,m.x);y0=Math.min(y0,m.y);x1=Math.max(x1,m.x);y1=Math.max(y1,m.y);});
+  return {x0:x0,y0:y0,x1:x1,y1:y1};
+}
+function focusOn(m,scale){
+  S=Math.max(S,scale||1.0); var vw=view.clientWidth,vh=view.clientHeight;
+  TX=vw/2-m.x*S; TY=vh/2-m.y*S; setView();
+}
+document.getElementById("zin").addEventListener("click",function(){zoomAt(1.4,view.clientWidth/2,view.clientHeight/2);});
+document.getElementById("zout").addEventListener("click",function(){zoomAt(1/1.4,view.clientWidth/2,view.clientHeight/2);});
+document.getElementById("zfit").addEventListener("click",fit);
+view.addEventListener("wheel",function(e){
+  e.preventDefault();
+  var f=Math.exp(-e.deltaY*(e.ctrlKey?0.01:0.0018));
+  zoomAt(f,e.clientX,e.clientY);
+},{passive:false});
+
+var ptrs={}, drag=null, moved=0, pinch=null, downMarker=null, downCluster=null;
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+view.addEventListener("pointerdown",function(e){
+  if(e.target.closest("#panel,#zoom,#info,#help")) return;
+  var hp=document.getElementById("help"); if(hp) hp.style.display="none";
+  view.setPointerCapture(e.pointerId);
+  ptrs[e.pointerId]={x:e.clientX,y:e.clientY};
+  var ids=Object.keys(ptrs);
+  if(ids.length===1){
+    drag={x:e.clientX,y:e.clientY,tx:TX,ty:TY}; moved=0;
+    var mk=e.target.closest&&e.target.closest(".mk"); downMarker=mk?mk.dataset.k:null;
+    var cl=e.target.closest&&e.target.closest(".cl"); downCluster=cl||null;
+  } else if(ids.length===2){
+    var a=ptrs[ids[0]],b=ptrs[ids[1]];
+    pinch={d:dist(a,b),s:S}; drag=null; downMarker=null; downCluster=null; moved=99;
+  }
+});
+view.addEventListener("pointermove",function(e){
+  if(!ptrs[e.pointerId]) return;
+  ptrs[e.pointerId]={x:e.clientX,y:e.clientY};
+  var ids=Object.keys(ptrs);
+  if(ids.length===2&&pinch){
+    var a=ptrs[ids[0]],b=ptrs[ids[1]];
+    var cx=(a.x+b.x)/2,cy=(a.y+b.y)/2;
+    var ns=Math.min(MAX,Math.max(MIN,pinch.s*dist(a,b)/pinch.d));
+    zoomAt(ns/S,cx,cy);
+  } else if(drag){
+    var dx=e.clientX-drag.x,dy=e.clientY-drag.y; moved=Math.max(moved,Math.hypot(dx,dy));
+    if(moved>5){view.classList.add("drag");TX=drag.tx+dx;TY=drag.ty+dy;setView();}
+  }
+});
+function endPtr(e){
+  if(!ptrs[e.pointerId]) return;
+  delete ptrs[e.pointerId];
+  if(Object.keys(ptrs).length<2) pinch=null;
+  if(Object.keys(ptrs).length===0){
+    view.classList.remove("drag");
+    if(drag&&moved<=5){
+      if(downMarker) toggle(downMarker);
+      else if(downCluster) clusterClick(downCluster._m);
+      else {select(null);closeGrp();}
+    }
+    drag=null; downMarker=null; downCluster=null;
+  }
+}
+view.addEventListener("pointerup",endPtr);
+view.addEventListener("pointercancel",function(e){delete ptrs[e.pointerId];pinch=null;drag=null;view.classList.remove("drag");});
+view.addEventListener("keydown",function(e){
+  var t=e.target;
+  if((e.key==="Enter"||e.key===" ")&&t.classList&&t.classList.contains("mk")){e.preventDefault();toggle(t.dataset.k);}
+  else if((e.key==="Enter"||e.key===" ")&&t.classList&&t.classList.contains("cl")){e.preventDefault();clusterClick(t._m);}
+
+  else if(e.key==="+"||e.key==="="){zoomAt(1.25,view.clientWidth/2,view.clientHeight/2);}
+  else if(e.key==="-"){zoomAt(0.8,view.clientWidth/2,view.clientHeight/2);}
+  else if(e.key==="ArrowLeft"){TX+=60;setView();} else if(e.key==="ArrowRight"){TX-=60;setView();}
+  else if(e.key==="ArrowUp"){TY+=60;setView();} else if(e.key==="ArrowDown"){TY-=60;setView();}
+});
+window.addEventListener("resize",setView);
+
+document.getElementById("jgo").addEventListener("click",function(){
+  var c=jcat.value,n=parseInt(document.getElementById("jnum").value,10), k=c+":"+n;
+  if(!byKey[k]){toast("Такого номера немає: у цій категорії 1–"+MARKERS.filter(function(m){return m.c===c;}).length+".");return;}
+  catUI[c].chk.checked=true; prefs["show_"+c]=true; savePrefs(); applyVisibility();
+  focusOn(byKey[k],1.3); select(k);
+  if(window.innerWidth<640) document.body.classList.add("folded");
+});
+document.getElementById("jnum").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("jgo").click();});
+
+/* ---------- grouping of nearby markers ---------- */
+var SORTED=MARKERS.slice().sort(function(a,b){return a.y-b.y||a.x-b.x;});
+var clEls=[], clLastS=-1, clRaf=0, grpMembers=null;
+var CAT_COLOR={board:"var(--board)",car:"var(--car)",combat:"var(--combat)"};
+function schedule(){ if(clRaf) return; clRaf=requestAnimationFrame(function(){clRaf=0;recluster();}); }
+function effS(s){return Math.min(Math.max(s,0.5),1.8);}
+function isVis(m){return catUI[m.c].chk.checked && !(document.body.classList.contains("hidedone")&&done[m.k]);}
+function clusterize(items,s){
+  var R=24*effS(s), R2=R*R, out=[], used=[];
+  for(var i=0;i<items.length;i++){
+    if(used[i]) continue; used[i]=true; var g=[items[i]];
+    for(var j=i+1;j<items.length;j++){
+      if(used[j]) continue;
+      var dx=(items[i].x-items[j].x)*s, dy=(items[i].y-items[j].y)*s;
+      if(dx*dx+dy*dy<R2){used[j]=true;g.push(items[j]);}
+    }
+    out.push(g);
+  }
+  return out;
+}
+function recluster(){
+  clLastS=S;
+  var on=document.getElementById("optGroup").checked;
+  var items=SORTED.filter(isVis);
+  var groups=on?clusterize(items,S):[];
+  MARKERS.forEach(function(m){els[m.k].classList.remove("grp");});
+  var ci=0;
+  groups.forEach(function(g){
+    if(g.length<2) return;
+    g.forEach(function(m){els[m.k].classList.add("grp");});
+    var el=clEls[ci];
+    if(!el){
+      el=document.createElement("div"); el.className="cl"; el.setAttribute("role","button"); el.tabIndex=0;
+      el.appendChild(document.createElement("span")); world.appendChild(el); clEls[ci]=el;
+    }
+    el.classList.remove("hid");
+    var cx=0,cy=0,d=0,cats={},nc=0;
+    g.forEach(function(m){cx+=m.x;cy+=m.y;if(done[m.k])d++;if(!cats[m.c]){cats[m.c]=0;nc++;}cats[m.c]++;});
+    cx/=g.length; cy/=g.length;
+    var all=(d===g.length);
+    el.style.left=cx+"px"; el.style.top=cy+"px";
+    el.style.setProperty("--p",(100*d/g.length)+"%");
+    el.style.setProperty("--bg",all?"var(--done)":(nc===1?CAT_COLOR[g[0].c]:"#1e262d"));
+    el.firstChild.textContent=g.length;
+    var parts=[]; if(cats.board)parts.push("борди: "+cats.board); if(cats.car)parts.push("авто-журнали: "+cats.car); if(cats.combat)parts.push("бойові журнали: "+cats.combat);
+    var label="Предметів поруч: "+g.length+" ("+parts.join(", ")+"), зібрано "+d;
+    el.title=label; el.setAttribute("aria-label",label);
+    el._m=g; ci++;
+  });
+  for(;ci<clEls.length;ci++){clEls[ci].classList.add("hid");clEls[ci]._m=null;}
+}
+function clusterClick(g){
+  if(!g) return;
+  var cx=0,cy=0; g.forEach(function(m){cx+=m.x;cy+=m.y;}); cx/=g.length; cy/=g.length;
+  var next=null;
+  if(S<MAX-0.001){
+    for(var t=S*1.2;;t*=1.2){
+      if(t>MAX) t=MAX;
+      if(clusterize(g,t).length>1){next=t;break;}
+      if(t>=MAX) break;
+    }
+  }
+  if(next){
+    S=next; TX=view.clientWidth/2-cx*S; TY=view.clientHeight/2-cy*S; setView(); closeGrp();
+  } else openGrp(g);
+}
+function openGrp(g){
+  grpMembers=g.slice().sort(function(a,b){return (a.c<b.c?-1:a.c>b.c?1:a.n-b.n);});
+  renderGrp(); document.getElementById("grp").classList.add("on");
+}
+function closeGrp(){grpMembers=null;document.getElementById("grp").classList.remove("on");}
+function refreshGrp(){if(grpMembers) renderGrp();}
+function el(tag,cls,txt){var e=document.createElement(tag); if(cls)e.className=cls; if(txt!==undefined)e.textContent=txt; return e;}
+function renderGrp(){
+  var box=document.getElementById("grp"); box.textContent="";
+  var head=el("div","gh"); head.appendChild(el("span","","Поруч: "+grpMembers.length+" предметів"));
+  var x=el("button","b","Закрити"); x.type="button"; x.addEventListener("click",closeGrp); head.appendChild(x); box.appendChild(head);
+  grpMembers.forEach(function(m){
+    var row=el("div","row"+(done[m.k]?" d":""));
+    row.appendChild(el("span","ic "+(m.c==="board"?"board":"c "+m.c)));
+    var mid=el("div"); mid.appendChild(el("div","n",itemName(m)+(done[m.k]?" — зібрано":"")));
+    mid.appendChild(el("div","c","X "+fmt(m.X)+"   Y "+fmt(m.Y)+"   Z "+fmt(m.Z))); row.appendChild(mid);
+    var b=el("button","b",done[m.k]?"Зняти":"Зібрано"); b.type="button";
+    b.addEventListener("click",function(){toggle(m.k);}); row.appendChild(b); box.appendChild(row);
+  });
+  var allDone=grpMembers.every(function(m){return done[m.k];});
+  var all=el("button","b all",allDone?"Зняти всі позначки":"Позначити всі зібраними"); all.type="button";
+  all.addEventListener("click",function(){
+    grpMembers.forEach(function(m){if(allDone)delete done[m.k];else done[m.k]=true;});
+    lastAction=null; save(); refresh();
+  });
+  box.appendChild(all);
+}
+document.addEventListener("keydown",function(e){if(e.key==="Escape") closeGrp();});
+(function(){
+  var g=document.getElementById("optGroup");
+  g.checked=prefs.group!==false;
+  g.addEventListener("change",function(){prefs.group=g.checked;savePrefs();closeGrp();schedule();});
+})();
+
+/* ---------- init ---------- */
+load(); applyVisibility(); refresh(); fit();
+})();
+</script>
+</body>
+</html>
