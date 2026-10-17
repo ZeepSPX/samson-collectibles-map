@@ -47,7 +47,7 @@
 
 ### Ліцензія і застереження
 
-Код розповсюджується за ліцензією [MIT](LICENSE). Це неофіційний фанатський проєкт, не пов'язаний із розробниками чи видавцями гри. Назва гри та пов'язані матеріали належать їхнім правовласникам. Фонова карта й координати виведені з даних гри, і ліцензія MIT на них не поширюється.
+Код розповсюджується за ліцензією [MIT](LICENSE). Це неофіційний фанатський проєкт, не пов'язаний із розробником і видавцем гри. Samson розроблено й видано студією [Liquid Swords AB](https://www.liquidswords.com/) (гра в [Steam](https://store.steampowered.com/app/3634520/Samson/) і [Epic Games Store](https://store.epicgames.com/p/samson-ab5af7)); назва гри, [Liquid Swords](https://www.liquidswords.com/) і пов'язані матеріали належать їй. Фонова карта, координати та фонове зображення сторінки (офіційний промо-шпалер гри) виведені з матеріалів гри, і ліцензія MIT на них не поширюється.
 
 ---
 
@@ -92,4 +92,4 @@ The background map and the analysis of the game files (extracting coordinates an
 
 ### License and disclaimer
 
-The code is released under the [MIT](LICENSE) license. This is an unofficial fan project, not affiliated with the game's developers or publishers. The game's name and related materials belong to their respective rights holders. The background map and coordinates are derived from game data, and the MIT license does not cover them.
+The code is released under the [MIT](LICENSE) license. This is an unofficial fan project, not affiliated with the game's developer or publisher. Samson is developed and published by [Liquid Swords AB](https://www.liquidswords.com/) (the game on [Steam](https://store.steampowered.com/app/3634520/Samson/) and the [Epic Games Store](https://store.epicgames.com/p/samson-ab5af7)); the game's name, Liquid Swords and related materials belong to them. The background map, coordinates and the page background image (official promotional wallpaper) come from the game's materials, and the MIT license does not cover them.

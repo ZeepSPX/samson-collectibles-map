@@ -3,7 +3,7 @@
 
     python3 tools/build.py
 
-Вхід:  src/template.html, data/collectibles.csv, data/labels.json, map/base_map.webp
+Вхід:  src/template.html, data/collectibles.csv, data/labels.json, map/base_map.webp, map/background.webp
 Вихід: index.html (одним файлом: карта, дані й код всередині, працює офлайн)
 
 Перетворення світових координат у піксельні:
@@ -31,6 +31,7 @@ def webp_size(data: bytes):
 def main():
     img = (ROOT / "map" / "base_map.webp").read_bytes()
     w, h = webp_size(img)
+    bg = (ROOT / "map" / "background.webp").read_bytes()
 
     markers = []
     with open(ROOT / "data" / "collectibles.csv", encoding="utf-8", newline="") as f:
@@ -49,7 +50,8 @@ def main():
     html = (html.replace("__W__", str(w)).replace("__H__", str(h))
                 .replace("__MARKERS__", json.dumps(markers, separators=(",", ":")))
                 .replace("__LABELS__", json.dumps(labels, ensure_ascii=False, separators=(",", ":")))
-                .replace("__IMG__", base64.b64encode(img).decode()))
+                .replace("__IMG__", base64.b64encode(img).decode())
+                .replace("__BG__", base64.b64encode(bg).decode()))
     (ROOT / "index.html").write_text(html, encoding="utf-8")
     counts = {c: sum(m["c"] == c for m in markers) for c in sorted(CATEGORIES)}
     print(f"index.html: {len(html) // 1024} КБ, маркерів: {len(markers)} {counts}, карта {w}×{h}")
